@@ -37,17 +37,6 @@ if not GITHUB_TOKEN:
     raise ValueError("GITHUB_TOKEN environment variable must be set")
 
 # CUDA versions to test for each PyTorch major.minor version
-CUDA_TEST_VERSIONS: dict[str, list[str]] = {
-    "2.4": ["12.1", "12.4"],
-    "2.5": ["12.1", "12.4"],
-    "2.6": ["12.4", "12.6"],
-    "2.7": ["12.6", "12.8"],
-    "2.8": ["12.6", "12.8", "12.9"],
-    "2.9": ["12.6", "12.8", "12.9"],
-    "2.10": ["12.6", "12.8", "12.9"],
-}
-
-
 def parse_wheel_filename(wheel_path: str) -> dict[str, str]:
     """Parse the wheel filename to extract build information.
 
@@ -76,13 +65,12 @@ def get_pytorch_cuda_index_url(cuda_version: str) -> str:
 wheel_info = parse_wheel_filename(WHEEL_NAME)
 torch_version = wheel_info["torch_ver"]
 torch_xy = wheel_info["torch_xy"]
+build_cuda_version = wheel_info["cuda_ver"]
 py_ver_num = wheel_info["py_ver"]
 python_version = f"{py_ver_num[0]}.{py_ver_num[1:]}"
 
-# Get CUDA versions to test
-cuda_versions_to_test = CUDA_TEST_VERSIONS.get(torch_xy, [])
-if not cuda_versions_to_test:
-    raise ValueError(f"No CUDA test versions configured for PyTorch {torch_xy}")
+# Test against the CUDA version the wheel was built with.
+cuda_versions_to_test = [build_cuda_version]
 
 print(f"Setting up tests for {WHEEL_NAME}")
 print(f"  PyTorch {torch_version}, testing with CUDA versions: {cuda_versions_to_test}")
@@ -111,18 +99,26 @@ def download_wheel_func():
         "Accept": "application/vnd.github.v3+json",
     }
 
-    # Get artifacts for this run
-    artifacts_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/actions/runs/{GITHUB_RUN_ID}/artifacts"
-    response = requests.get(artifacts_url, headers=headers)
-    response.raise_for_status()
-
-    # Find the artifact matching our wheel name
-    artifacts = response.json()["artifacts"]
+    # Get artifacts for this run (paginated)
     artifact = None
-    for a in artifacts:
-        if a["name"] == WHEEL_NAME:
-            artifact = a
+    page = 1
+    while True:
+        artifacts_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/actions/runs/{GITHUB_RUN_ID}/artifacts?per_page=100&page={page}"
+        response = requests.get(artifacts_url, headers=headers)
+        response.raise_for_status()
+
+        artifacts = response.json()["artifacts"]
+        if not artifacts:
             break
+
+        for a in artifacts:
+            if a["name"] == WHEEL_NAME:
+                artifact = a
+                break
+
+        if artifact:
+            break
+        page += 1
 
     if not artifact:
         raise ValueError(f"Could not find artifact {WHEEL_NAME}")
@@ -285,6 +281,11 @@ def test_cuda129():
     return _run_pytorch_scatter_test("12.9")
 
 
+@app.function(image=images.get("13.0"), gpu="a10g", timeout=600)
+def test_cuda130():
+    return _run_pytorch_scatter_test("13.0")
+
+
 # Map CUDA versions to their test functions
 test_functions = {
     "12.1": test_cuda121,
@@ -292,6 +293,7 @@ test_functions = {
     "12.6": test_cuda126,
     "12.8": test_cuda128,
     "12.9": test_cuda129,
+    "13.0": test_cuda130,
 }
 
 
