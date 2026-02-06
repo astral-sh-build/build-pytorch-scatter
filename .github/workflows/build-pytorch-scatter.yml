@@ -76,8 +76,15 @@ jobs:
           else
             PYTORCH_SCATTER_VERSION="2.1.2"
           fi
+          # Map version to commit hash (upstream tags are outdated)
+          if [ "${PYTORCH_SCATTER_VERSION}" = "2.1.2" ]; then
+            PYTORCH_SCATTER_REF="648dda3cf964731ffb4de11eafc445a83133eda4"
+          else
+            PYTORCH_SCATTER_REF="${PYTORCH_SCATTER_VERSION}"
+          fi
           echo "version=${PYTORCH_SCATTER_VERSION}" >> $GITHUB_OUTPUT
-          echo "Using PyTorch Scatter version: ${PYTORCH_SCATTER_VERSION}"
+          echo "ref=${PYTORCH_SCATTER_REF}" >> $GITHUB_OUTPUT
+          echo "Using PyTorch Scatter version: ${PYTORCH_SCATTER_VERSION} (ref: ${PYTORCH_SCATTER_REF})"
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
@@ -87,7 +94,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: rusty1s/pytorch_scatter
-          ref: ${{ steps.pytorch-scatter-version.outputs.version }}
+          ref: ${{ steps.pytorch-scatter-version.outputs.ref }}
           persist-credentials: false
 
       - name: Get source commit SHA
