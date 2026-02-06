@@ -126,6 +126,8 @@ jobs:
           echo "MANYLINUX_CUDA_COMPAT_VERSION=$(echo ${{ matrix.MANYLINUX_CUDA_COMPAT_VERSION }})" >> $GITHUB_ENV
           echo "MANYLINUX_GLIBC_VERSION=$(echo ${{ matrix.MANYLINUX_GLIBC_VERSION }})" >> $GITHUB_ENV
           echo "CI_AUDITWHEEL_EXCLUDES=$(echo ${{ matrix.CI_AUDITWHEEL_EXCLUDES }})" >> $GITHUB_ENV
+          # Avoid `echo` quoting to avoid interpreting the semicolon-delimited list as separate commands.
+          echo "TORCH_CUDA_ARCH_LIST=\"${{ matrix.TORCH_CUDA_ARCH_LIST }}\"" >> $GITHUB_ENV
 
       - name: Install cibuildwheel
         run: |
@@ -160,6 +162,7 @@ jobs:
             MATRIX_PYTHON_VERSION=${{ env.MATRIX_PYTHON_VERSION }}
             FORCE_CUDA=1
             FORCE_CXX11_ABI=${{ matrix.cxx11-abi }}
+            TORCH_CUDA_ARCH_LIST=${{ env.TORCH_CUDA_ARCH_LIST }}
             MAX_JOBS=8
             UV_PYTHON=/opt/python/cp${{ env.MATRIX_PYTHON_VERSION }}-cp${{ env.MATRIX_PYTHON_VERSION }}/bin/python
             CI_AUDITWHEEL_EXCLUDES="${{ env.CI_AUDITWHEEL_EXCLUDES }}"
