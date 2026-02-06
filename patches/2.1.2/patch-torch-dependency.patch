@@ -1,0 +1,25 @@
+diff --git a/setup.py b/setup.py
+index 1234567..abcdefg 100644
+--- a/setup.py
++++ b/setup.py
+@@ -5,6 +5,7 @@ from itertools import product
+
+ import torch
+ from setuptools import find_packages, setup
++from packaging.version import Version
+ from torch.__config__ import parallel_info
+ from torch.utils.cpp_extension import (CUDA_HOME, BuildExtension, CppExtension,
+                                        CUDAExtension)
+@@ -92,7 +93,11 @@ def get_extensions():
+     return extensions
+
+
+-install_requires = []
++TORCH_VERSION = Version(torch.__version__.split('+')[0])
++TORCH_MAJOR = TORCH_VERSION.major
++TORCH_MINOR = TORCH_VERSION.minor
++
++install_requires = [f"torch=={TORCH_MAJOR}.{TORCH_MINOR}.*"]
+
+ test_requires = [
+     'pytest',
