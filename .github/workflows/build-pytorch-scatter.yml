@@ -1,4 +1,4 @@
-name: PyTorch Scatter
+name: PyTorch Scatter (GPU)
 
 permissions: {}
 
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   plan-matrix:
-    name: Plan PyTorch Scatter build matrix
+    name: Plan build matrix
     runs-on: ubuntu-latest
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
     permissions:

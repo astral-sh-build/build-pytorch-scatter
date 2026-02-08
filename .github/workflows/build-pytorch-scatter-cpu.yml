@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   plan-matrix:
-    name: Plan PyTorch Scatter CPU build matrix
+    name: Plan build matrix
     runs-on: ubuntu-latest
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
     permissions:
@@ -46,7 +46,7 @@ jobs:
           LIMIT_MATRIX: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'full-build') && '1' || '0' }}
 
   build-wheels:
-    name: Build Wheel (CPU)
+    name: Build Wheel
     needs: [plan-matrix]
     runs-on: ${{ matrix.RUNNER }}
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
