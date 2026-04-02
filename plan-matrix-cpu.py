@@ -12,24 +12,26 @@ from packaging.version import Version
 
 # Add or remove versions as needed based on pytorch-scatter compatibility.
 PYTORCH_SCATTER_SUPPORTED_TORCH_VERSIONS = [
-    "2.4.1",
-    "2.5.1",
-    "2.6.0",
-    "2.7.1",
-    "2.8.0",
-    "2.9.0",
-    "2.10.0",
+    "2.3.1",
+    # "2.4.1",
+    # "2.5.1",
+    # "2.6.0",
+    # "2.7.1",
+    # "2.8.0",
+    # "2.9.0",
+    # "2.10.0",
 ]
 
 ARCH_TORCH_PAIRS = {
-    "x86_64": ["2.4.1", "2.5.1", "2.6.0", "2.7.1", "2.8.0", "2.9.0", "2.10.0"],
-    "aarch64": ["2.6.0", "2.7.1", "2.8.0", "2.9.0", "2.10.0"],
+    "x86_64": ["2.3.1"],  # "2.4.1", "2.5.1", "2.6.0", "2.7.1", "2.8.0", "2.9.0", "2.10.0"],
+    "aarch64": [],  # "2.6.0", "2.7.1", "2.8.0", "2.9.0", "2.10.0"],
 }
 
 # Supported Python versions for each PyTorch version.
 # See: https://github.com/pytorch/pytorch/blob/main/RELEASE.md#release-compatibility-matrix
 TORCH_PYTHON_SUPPORT = {
-    "2.4": ["3.9", "3.10", "3.11", "3.12"],
+    "2.3": ["3.8", "3.9", "3.10", "3.11", "3.12"],
+    "2.4": ["3.8", "3.9", "3.10", "3.11", "3.12"],
     "2.5": ["3.9", "3.10", "3.11", "3.12"],
     "2.6": ["3.9", "3.10", "3.11", "3.12"],
     "2.7": ["3.9", "3.10", "3.11", "3.12", "3.13"],
@@ -41,6 +43,7 @@ TORCH_PYTHON_SUPPORT = {
 # The glibc version to use for each PyTorch version, for manylinux builds.
 # See: https://github.com/pytorch/pytorch/blob/main/RELEASE.md#release-compatibility-matrix
 TORCH_GLIBC_VERSION: dict[str, str] = {
+    "2.3": "2_17",
     "2.4": "2_17",
     "2.5": "2_17",
     "2.6": "2_28",

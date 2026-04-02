@@ -12,24 +12,26 @@ from packaging.version import Version
 
 # Add or remove versions as needed based on pytorch-scatter compatibility.
 PYTORCH_SCATTER_SUPPORTED_TORCH_VERSIONS = [
-    "2.4.1",
-    "2.5.1",
-    "2.6.0",
-    "2.7.1",
-    "2.8.0",
-    "2.9.0",
-    "2.10.0",
+    "2.3.1",
+    # "2.4.1",
+    # "2.5.1",
+    # "2.6.0",
+    # "2.7.1",
+    # "2.8.0",
+    # "2.9.0",
+    # "2.10.0",
 ]
 
 ARCH_TORCH_PAIRS = {
-    "x86_64": ["2.4.1", "2.5.1", "2.6.0", "2.7.1", "2.8.0", "2.9.0", "2.10.0"],
-    "aarch64": ["2.6.0", "2.7.1", "2.8.0", "2.9.0", "2.10.0"],
+    "x86_64": ["2.3.1"],  # "2.4.1", "2.5.1", "2.6.0", "2.7.1", "2.8.0", "2.9.0", "2.10.0"],
+    "aarch64": [],  # "2.6.0", "2.7.1", "2.8.0", "2.9.0", "2.10.0"],
 }
 
 # Supported Python versions for each PyTorch version.
 # See: https://github.com/pytorch/pytorch/blob/main/RELEASE.md#release-compatibility-matrix
 TORCH_PYTHON_SUPPORT = {
-    "2.4": ["3.9", "3.10", "3.11", "3.12"],
+    "2.3": ["3.8", "3.9", "3.10", "3.11", "3.12"],
+    "2.4": ["3.8", "3.9", "3.10", "3.11", "3.12"],
     "2.5": ["3.9", "3.10", "3.11", "3.12"],
     "2.6": ["3.9", "3.10", "3.11", "3.12"],
     "2.7": ["3.9", "3.10", "3.11", "3.12", "3.13"],
@@ -41,6 +43,7 @@ TORCH_PYTHON_SUPPORT = {
 # Minimum and maximum CUDA versions for each PyTorch version.
 # See: https://github.com/pytorch/pytorch/blob/main/RELEASE.md#release-compatibility-matrix
 PYTORCH_CUDA_RANGES: dict[str, tuple[str, str]] = {
+    "2.3": ("11.8", "12.1"),
     "2.4": ("11.8", "12.4"),
     "2.5": ("11.8", "12.4"),
     "2.6": ("11.8", "12.6"),
@@ -52,6 +55,7 @@ PYTORCH_CUDA_RANGES: dict[str, tuple[str, str]] = {
 
 # Actual CUDA versions to build against for each PyTorch version.
 PYTORCH_CUDA_VERSIONS: dict[tuple[str, str], list[str]] = {
+    ("2.3", "x86_64"): ["11.8", "12.1"],
     ("2.4", "x86_64"): ["12.1", "12.4"],
     ("2.4", "aarch64"): ["12.4"],
     ("2.5", "x86_64"): ["12.1", "12.4"],
@@ -72,6 +76,9 @@ PYTORCH_CUDA_VERSIONS: dict[tuple[str, str], list[str]] = {
 # See: https://github.com/pytorch/pytorch/blob/main/RELEASE.md#release-compatibility-matrix
 # CUDA architectures to build against for each PyTorch version.
 TORCH_CUDA_ARCH_LIST = {
+    # https://github.com/pytorch/builder/blob/release/2.3/manywheel/build_cuda.sh
+    ("2.3", "11.8"): "3.7;5.0;6.0;7.0;7.5;8.0;8.6;9.0+PTX",
+    ("2.3", "12.1"): "5.0;6.0;7.0;7.5;8.0;8.6;9.0+PTX",
     # https://github.com/pytorch/pytorch/blob/d990dada86a8ad94882b5c23e859b88c0c255bda/torch/utils/cpp_extension.py#L1938
     ("2.4", "12.1"): "7.0;7.5;8.0;8.6;9.0+PTX",
     ("2.4", "12.4"): "7.0;7.5;8.0;8.6;9.0+PTX",
@@ -102,6 +109,7 @@ TORCH_CUDA_ARCH_LIST = {
 # The glibc version to use for each PyTorch version, for manylinux builds.
 # See: https://github.com/pytorch/pytorch/blob/main/RELEASE.md#release-compatibility-matrix
 TORCH_GLIBC_VERSION: dict[str, str] = {
+    "2.3": "2_17",
     "2.4": "2_17",
     "2.5": "2_17",
     "2.6": "2_28",
