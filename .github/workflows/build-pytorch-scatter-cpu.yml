@@ -156,7 +156,7 @@ jobs:
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair -w /tmp/cibuildwheel/repaired_wheel {wheel} ${CI_AUDITWHEEL_EXCLUDES}"
           CIBW_BUILD_FRONTEND: "build[uv]; args: --no-isolation"
 
-      - name: Embed SBOM into wheel
+      - name: Embed metadata into wheel
         run: |
           for wheel in dist/*.whl; do
             uv run --no-project --script build_scripts/embed_patches.py "$wheel" "build_scripts/patches/${PYTORCH_SCATTER_VERSION}" \
@@ -164,7 +164,9 @@ jobs:
               --source-tag "${PYTORCH_SCATTER_VERSION}" \
               --source-commit "${SOURCE_COMMIT}" \
               --build-repo "https://github.com/astral-sh-build/build-pytorch-scatter" \
-              --build-commit "${BUILD_COMMIT}"
+              --build-commit "${BUILD_COMMIT}" \
+              --license-expression "MIT" \
+              --license-file "LICENSE:LICENSE"
           done
         env:
           PYTORCH_SCATTER_VERSION: ${{ steps.pytorch-scatter-version.outputs.version }}
