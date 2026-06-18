@@ -10,11 +10,11 @@ version, with CPU-only wheels on the CPU index. Each wheel has a local version s
 identifies the accelerator and PyTorch versions it was built against, such as
 `torch-scatter==2.1.2+cu.12.8.torch.2.10`, and requires the matching PyTorch release.
 
-Pre-built wheels are available on [Astral's GPU indexes](https://wheels.astralhosted.com/index.html).
+Pre-built wheels are available on [Astral's GPU indexes](https://wheels.astral.sh/index.html).
 For example, to install a CUDA 12.8 build:
 
 ```console
-$ uv add torch-scatter --index astral-cu128=https://wheels.astralhosted.com/simple/cu128/
+$ uv add torch-scatter --index astral-cu128=https://wheels.astral.sh/simple/cu128/
 ```
 
 This configures the index and uses it as the source for `torch-scatter`:
@@ -25,16 +25,16 @@ torch-scatter = { index = "astral-cu128" }
 
 [[tool.uv.index]]
 name = "astral-cu128"
-url = "https://wheels.astralhosted.com/simple/cu128/"
+url = "https://wheels.astral.sh/simple/cu128/"
 ```
 
 Or, with `uv pip`:
 
 ```console
-$ uv pip install --index https://wheels.astralhosted.com/simple/cu128/ torch-scatter
+$ uv pip install --index https://wheels.astral.sh/simple/cu128/ torch-scatter
 ```
 
-For a CPU-only build, use the `https://wheels.astralhosted.com/simple/cpu/`
+For a CPU-only build, use the `https://wheels.astral.sh/simple/cpu/`
 index instead.
 
 ## Supported versions
