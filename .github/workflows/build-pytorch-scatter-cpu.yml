@@ -61,7 +61,7 @@ jobs:
           if [ -n "${INPUTS_RELEASE_TAG}" ]; then
             TAG="${INPUTS_RELEASE_TAG}"
             # Remove -rN suffix if present
-            PYTORCH_SCATTER_VERSION=$(printf '%s\n' "${TAG}" | sed -E 's/-r[0-9]+$//')
+            PYTORCH_SCATTER_VERSION=$(sed -E 's/-r[0-9]+$//' <<<"${TAG}")
           else
             PYTORCH_SCATTER_VERSION="2.1.2"
           fi
