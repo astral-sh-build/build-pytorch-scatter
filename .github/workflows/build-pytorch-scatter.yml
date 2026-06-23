@@ -19,6 +19,8 @@ concurrency:
 jobs:
   build-cpu:
     name: Build CPU wheels
+    permissions:
+      contents: read
     uses: ./.github/workflows/build-pytorch-scatter-cpu.yml
     with:
       release_tag: ${{ inputs.release_tag }}
