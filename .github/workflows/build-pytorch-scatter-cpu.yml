@@ -3,21 +3,12 @@ name: PyTorch Scatter (CPU)
 permissions: {}
 
 on:
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      PYTORCH_SCATTER_VERSION:
-        description: "PyTorch Scatter version"
-        required: true
-        default: "2.1.2"
+      release_tag:
+        description: "Release tag"
+        required: false
         type: string
-  release:
-    types: [created]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: true
 
 jobs:
   plan-matrix:
@@ -53,8 +44,7 @@ jobs:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
 
     permissions:
-      contents: write
-      actions: write
+      contents: read
 
     strategy:
       fail-fast: false
@@ -68,12 +58,10 @@ jobs:
           # Extract PyTorch Scatter version from tag. Tags can be either:
           # - 2.1.2 (legacy format; maps directly to PyTorch Scatter version)
           # - 2.1.2-r1 (new format; strip -rN suffix to get PyTorch Scatter version)
-          if [ "${GITHUB_EVENT_NAME}" = "release" ]; then
-            TAG="${GITHUB_REF_NAME}"
+          if [ -n "${INPUTS_RELEASE_TAG}" ]; then
+            TAG="${INPUTS_RELEASE_TAG}"
             # Remove -rN suffix if present
-            PYTORCH_SCATTER_VERSION="${TAG%-r*}"
-          elif [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            PYTORCH_SCATTER_VERSION="${INPUTS_PYTORCH_SCATTER_VERSION}"
+            PYTORCH_SCATTER_VERSION=$(sed -E 's/-r[0-9]+$//' <<<"${TAG}")
           else
             PYTORCH_SCATTER_VERSION="2.1.2"
           fi
@@ -87,9 +75,7 @@ jobs:
           echo "ref=${PYTORCH_SCATTER_REF}" >> $GITHUB_OUTPUT
           echo "Using PyTorch Scatter version: ${PYTORCH_SCATTER_VERSION} (ref: ${PYTORCH_SCATTER_REF})"
         env:
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          INPUTS_PYTORCH_SCATTER_VERSION: ${{ inputs.PYTORCH_SCATTER_VERSION }}
+          INPUTS_RELEASE_TAG: ${{ inputs.release_tag }}
 
       - name: Checkout PyTorch Scatter
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -180,14 +166,7 @@ jobs:
           ls dist
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: github.event_name != 'release'
         with:
           name: ${{env.wheel_name}}
           path: dist/${{env.wheel_name}}
           if-no-files-found: error
-
-      - name: Upload wheels to release
-        if: github.event_name == 'release'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${GITHUB_REF_NAME}" ./dist/*.whl --clobber --repo "${GITHUB_REPOSITORY}"
