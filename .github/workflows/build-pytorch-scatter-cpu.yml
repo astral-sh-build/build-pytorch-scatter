@@ -125,7 +125,7 @@ jobs:
           CIBW_BEFORE_ALL: >
             curl -LsSf https://astral.sh/uv/install.sh | sh
           CIBW_BEFORE_BUILD_LINUX: >
-            uv pip install typing-extensions==4.12.2 setuptools wheel ninja packaging &&
+            uv pip install typing-extensions==4.16.0 setuptools wheel ninja packaging &&
             uv pip install --no-cache-dir --index-strategy unsafe-first-match torch==${{ matrix.torch-version }} --index-url https://download.pytorch.org/whl/cpu &&
             bash build_scripts/prepare_for_build.sh ${{ steps.pytorch-scatter-version.outputs.version }}
           CIBW_ENVIRONMENT: >
