@@ -1,45 +1,20 @@
-name: PyTorch Scatter (CPU)
+name: Build wheel batch
 
 permissions: {}
 
 on:
   workflow_call:
     inputs:
+      matrix:
+        required: true
+        type: string
       release_tag:
-        description: "Release tag"
-        required: false
+        default: ""
         type: string
 
 jobs:
-  plan-matrix:
-    name: Plan build matrix
-    runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
-    permissions:
-      contents: read # for actions/checkout
-    outputs:
-      matrix: ${{ steps.generate-matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          persist-credentials: false
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6.0.1
-        with:
-          version: "0.9.26"
-          enable-cache: false
-
-      - name: Generate build matrix
-        id: generate-matrix
-        run: |
-          echo "matrix=$(uv run --script plan-matrix-cpu.py)" >> $GITHUB_OUTPUT
-        env:
-          LIMIT_MATRIX: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'full-build') && '1' || '0' }}
-
   build-wheels:
     name: Build Wheel
-    needs: [plan-matrix]
     runs-on: ${{ matrix.RUNNER }}
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
 
@@ -49,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.plan-matrix.outputs.matrix) }}
+        include: ${{ fromJSON(inputs.matrix) }}
 
     steps:
       - name: Determine PyTorch Scatter version
@@ -58,7 +33,7 @@ jobs:
           # Extract PyTorch Scatter version from tag. Tags can be either:
           # - 2.1.2 (legacy format; maps directly to PyTorch Scatter version)
           # - 2.1.2-r1 (new format; strip -rN suffix to get PyTorch Scatter version)
-          if [ -n "${INPUTS_RELEASE_TAG}" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             TAG="${INPUTS_RELEASE_TAG}"
             # Remove -rN suffix if present
             PYTORCH_SCATTER_VERSION=$(sed -E 's/-r[0-9]+$//' <<<"${TAG}")
@@ -75,6 +50,7 @@ jobs:
           echo "ref=${PYTORCH_SCATTER_REF}" >> $GITHUB_OUTPUT
           echo "Using PyTorch Scatter version: ${PYTORCH_SCATTER_VERSION} (ref: ${PYTORCH_SCATTER_REF})"
         env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
           INPUTS_RELEASE_TAG: ${{ inputs.release_tag }}
 
       - name: Checkout PyTorch Scatter
@@ -104,37 +80,52 @@ jobs:
           version: "0.9.26"
           enable-cache: false
 
-      - name: Set build variables
+      - name: Set CUDA and PyTorch versions
         run: |
+          echo "MATRIX_CUDA_VERSION=$(echo ${{ matrix.MATRIX_CUDA_VERSION }})" >> $GITHUB_ENV
           echo "MATRIX_TORCH_VERSION=$(echo ${{ matrix.MATRIX_TORCH_VERSION }})" >> $GITHUB_ENV
           echo "MATRIX_PYTHON_VERSION=$(echo ${{ matrix.MATRIX_PYTHON_VERSION }})" >> $GITHUB_ENV
+          echo "MANYLINUX_CUDA_VERSION=$(echo ${{ matrix.MANYLINUX_CUDA_VERSION }})" >> $GITHUB_ENV
+          echo "MANYLINUX_CUDA_COMPAT_VERSION=$(echo ${{ matrix.MANYLINUX_CUDA_COMPAT_VERSION }})" >> $GITHUB_ENV
           echo "MANYLINUX_GLIBC_VERSION=$(echo ${{ matrix.MANYLINUX_GLIBC_VERSION }})" >> $GITHUB_ENV
           echo "CI_AUDITWHEEL_EXCLUDES=$(echo ${{ matrix.CI_AUDITWHEEL_EXCLUDES }})" >> $GITHUB_ENV
+          # Avoid `echo` quoting to avoid interpreting the semicolon-delimited list as separate commands.
+          echo "TORCH_CUDA_ARCH_LIST=\"${{ matrix.TORCH_CUDA_ARCH_LIST }}\"" >> $GITHUB_ENV
 
       - name: Install cibuildwheel
         run: |
           uv venv --python 3.13
           uv pip install cibuildwheel
 
-      - name: Build wheels for PyTorch Scatter ${{ matrix.torch-version }}+cpu
+      - name: Build wheels for PyTorch Scatter ${{ matrix.torch-version }}+cu${{ matrix.cuda-version }}
         run: |
           .venv/bin/cibuildwheel --output-dir dist
         env:
           CIBW_ARCHS_LINUX: ${{ matrix.target-arch }}
           CIBW_BUILD: cp${{ env.MATRIX_PYTHON_VERSION }}-*64
+          CIBW_MANYLINUX_X86_64_IMAGE: pytorch/manylinux2_28-builder:cuda${{ env.MANYLINUX_CUDA_VERSION }}
+          CIBW_MANYLINUX_AARCH64_IMAGE: pytorch/manylinuxaarch64-builder:cuda${{ env.MANYLINUX_CUDA_VERSION }}
           CIBW_BEFORE_ALL: >
             curl -LsSf https://astral.sh/uv/install.sh | sh
+          # TODO(charlie): The PyTorch CUDA 12.9 index is missing cuda-bindings==12.9.4, but PyTorch 2.10 depends on it.
           CIBW_BEFORE_BUILD_LINUX: >
             uv pip install typing-extensions==4.16.0 setuptools wheel ninja packaging &&
-            uv pip install --no-cache-dir --index-strategy unsafe-first-match torch==${{ matrix.torch-version }} --index-url https://download.pytorch.org/whl/cpu &&
+            if [ "${MATRIX_CUDA_VERSION}" = "129" ] && [ "${MATRIX_TORCH_VERSION}" = "2.10" ]; then uv pip install cuda-bindings==12.9.4; fi &&
+            uv pip install --no-cache-dir --index-strategy unsafe-first-match torch==${{ matrix.torch-version }} --index-url https://download.pytorch.org/whl/cu${MATRIX_CUDA_VERSION} &&
             bash build_scripts/prepare_for_build.sh ${{ steps.pytorch-scatter-version.outputs.version }}
           CIBW_ENVIRONMENT: >
             PATH=$PATH:/root/.local/bin
+            CUDA_HOME="/usr/local/cuda-${{ env.MANYLINUX_CUDA_VERSION }}"
+            LIBRARY_PATH="/usr/lib64"
+            LD_LIBRARY_PATH="/usr/lib64:/usr/local/cuda-${{ env.MANYLINUX_CUDA_VERSION }}/lib64:/usr/local/cuda-${{ env.MANYLINUX_CUDA_VERSION }}/targets/${{ matrix.target-arch }}-linux/lib:/usr/local/cuda-${{ env.MANYLINUX_CUDA_VERSION }}/extras/CUPTI/lib64"
+            LDFLAGS="-ldl -L/usr/local/cuda-${{ env.MANYLINUX_CUDA_VERSION }}/targets/${{ matrix.target-arch }}-linux/lib/stubs"
             AUDITWHEEL_PLAT="manylinux_${{ env.MANYLINUX_GLIBC_VERSION }}_$(uname -m)"
+            MATRIX_CUDA_VERSION=${{ env.MATRIX_CUDA_VERSION }}
             MATRIX_TORCH_VERSION=${{ env.MATRIX_TORCH_VERSION }}
             MATRIX_PYTHON_VERSION=${{ env.MATRIX_PYTHON_VERSION }}
-            FORCE_ONLY_CPU=1
+            FORCE_CUDA=1
             FORCE_CXX11_ABI=${{ matrix.cxx11-abi }}
+            TORCH_CUDA_ARCH_LIST=${{ env.TORCH_CUDA_ARCH_LIST }}
             MAX_JOBS=8
             UV_PYTHON=/opt/python/cp${{ env.MATRIX_PYTHON_VERSION }}-cp${{ env.MATRIX_PYTHON_VERSION }}/bin/python
             CI_AUDITWHEEL_EXCLUDES="${{ env.CI_AUDITWHEEL_EXCLUDES }}"
